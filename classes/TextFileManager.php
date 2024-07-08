@@ -86,9 +86,9 @@ class TextFileManager
         $extension = TextFileService::findFileExtension($this->getFilePath());
         $filename = TextFileService::findFilename($this->getFilePath(), $extension);
 
-        $container = array_chunk(range(0, $totalLines), (int) sqrt($totalLines));
+        $chunks = array_chunk(range(0, $totalLines), (int) sqrt($totalLines));
 
-        foreach ($container as $key => $chunk) {
+        foreach ($chunks as $key => $chunk) {
             $chunkFilename = TextFileService::makeChunkFilename($filename, $extension, $key);
             
             $lastChunkKey = array_key_last($chunk);
