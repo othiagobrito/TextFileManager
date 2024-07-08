@@ -87,6 +87,7 @@ class TextFileManager
         $filename = TextFileService::findFilename($this->getFilePath(), $extension);
 
         $chunks = array_chunk(range(0, $totalLines), (int) sqrt($totalLines));
+        file_put_contents(filename: "{$output}/chunk-map.json", data: json_encode($chunks, JSON_PRETTY_PRINT));
 
         foreach ($chunks as $key => $chunk) {
             $chunkFilename = TextFileService::makeChunkFilename($filename, $extension, $key);
