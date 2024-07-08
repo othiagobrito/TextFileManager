@@ -2,14 +2,43 @@
 
 class TextFileManager
 {
-    public function __construct(protected $filepath)
+    public function __construct(protected string $filepath)
     {
         # code...
+    }
+
+    public function getFilename(): string
+    {
+        return basename($this->filepath);
+    }
+
+    public function getFilePath(): string
+    {
+        return $this->filepath;
+    }
+
+    public function getFileDirectory(): string
+    {
+        return dirname($this->getFilePath());
+    }
+
+    public function fileExists(): string
+    {
+        return is_file($this->filepath);
     }
 
     protected function getFile(): SplFileObject
     {
         return $this->setFileFlags(new SplFileObject($this->filepath));
+    }
+
+    public function getTotalLinesNumber(): int
+    {
+        $file = $this->getFile();
+        $file->seek(PHP_INT_MAX);
+        $file->seek($file->key());
+        
+        return $file->key() + 1;
     }
 
     protected function setFileFlags(SplFileObject $file): SplFileObject
@@ -38,9 +67,39 @@ class TextFileManager
     {
         $file = $this->getFile();
 
-        foreach ($lines as $key => $number) {
+        foreach ($lines as $number) {
             $file->seek($number);
             $file->eof() ?: Printer::printLine($file->current());
         }
+    }
+
+    public function chunk(?string $output = ''): array
+    {
+        if (! $this->fileExists()) {
+            return ['status' => false, 'level' => 'fail', 'message' => 'Error: File not found.'];
+        }
+
+        $output ?: $output = $this->getFileDirectory();
+        $totalLines = $this->getTotalLinesNumber() - 1;
+
+        $file = $this->getFile();
+        $extension = TextFileService::findFileExtension($this->getFilePath());
+        $filename = TextFileService::findFilename($this->getFilePath(), $extension);
+
+        $container = array_chunk(range(0, $totalLines), (int) sqrt($totalLines));
+
+        foreach ($container as $key => $chunk) {
+            $chunkFilename = TextFileService::makeChunkFilename($filename, $extension, $key);
+            
+            $lastChunkKey = array_key_last($chunk);
+            foreach ($chunk as $key => $line) {
+                $file->seek($line);
+                $content = $file->current();
+                $lastChunkKey === $key ?: $content = $content . PHP_EOL;
+                file_put_contents(filename: "{$output}/{$chunkFilename}", data: $content, flags: FILE_APPEND | LOCK_EX);
+            }
+        }
+
+        return ['status' => true, 'level' => 'success', 'message' => 'File chunked successfully!'];
     }
 }
